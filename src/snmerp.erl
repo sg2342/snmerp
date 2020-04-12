@@ -209,7 +209,7 @@ get_oid(S = #snmerp{}, Oid, Opts) ->
 	case request_pdu(ReqPdu, Timeout, Retries, S) of
 		{ok, #'PDU'{'variable-bindings' = Vbs}} ->
 			case Vbs of
-				[#'VarBind'{name = Oid, v = V}] ->
+				[#'VarBind'{v = V}] ->
 					{ok, V};
 				_ ->
 					{error, {unexpected_varbinds, Vbs}}
