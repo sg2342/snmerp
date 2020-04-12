@@ -210,7 +210,7 @@ get_oid(S = #snmerp{}, Oid, Opts) ->
 		{ok, #'PDU'{'variable-bindings' = Vbs}} ->
 			case Vbs of
 				[#'VarBind'{name = Oid, v = V}] ->
-					{ok, v_to_value(V, Oid, S)};
+					{ok, V};
 				_ ->
 					{error, {unexpected_varbinds, Vbs}}
 			end;
