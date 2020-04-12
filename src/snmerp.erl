@@ -89,6 +89,8 @@
 -export([get_community/1]).
 -export([discover/2]).
 
+-export([get_oid/2, get_oid/3]).
+
 -define(i32(Int), (Int bsr 24) band 255, (Int bsr 16) band 255, (Int bsr 8) band 255, Int band 255).
 -define(i64(Int), (Int bsr 56) band 255, (Int bsr 48) band 255, (Int bsr 40) band 255, (Int bsr 32) band 255, (Int bsr 24) band 255, (Int bsr 16) band 255, (Int bsr 8) band 255, Int band 255).
 
@@ -179,6 +181,29 @@ get(S = #snmerp{}, Var, Opts) ->
 	Timeout = proplists:get_value(timeout, Opts, S#snmerp.timeout),
 	Retries = proplists:get_value(retries, Opts, S#snmerp.retries),
 	Oid = var_to_oid(Var, S),
+	ReqVbs = [#'VarBind'{name = Oid, v = {unSpecified,'NULL'}}],
+	ReqPdu = {'get-request', #'PDU'{'variable-bindings' = ReqVbs}},
+	case request_pdu(ReqPdu, Timeout, Retries, S) of
+		{ok, #'PDU'{'variable-bindings' = Vbs}} ->
+			case Vbs of
+				[#'VarBind'{name = Oid, v = V}] ->
+					{ok, v_to_value(V, Oid, S)};
+				_ ->
+					{error, {unexpected_varbinds, Vbs}}
+			end;
+		Err -> Err
+	end.
+
+%% @doc Get a single object
+-spec get_oid(client(), var()) -> {ok, value()} | {error, term()}.
+get_oid(S = #snmerp{}, Oid) ->
+	get_oid(S, Var, []).
+
+%% @doc Get a single object
+-spec get_oid(client(), var(), req_options()) -> {ok, value()} | {error, term()}.
+get_oid(S = #snmerp{}, Oid, Opts) ->
+	Timeout = proplists:get_value(timeout, Opts, S#snmerp.timeout),
+	Retries = proplists:get_value(retries, Opts, S#snmerp.retries),
 	ReqVbs = [#'VarBind'{name = Oid, v = {unSpecified,'NULL'}}],
 	ReqPdu = {'get-request', #'PDU'{'variable-bindings' = ReqVbs}},
 	case request_pdu(ReqPdu, Timeout, Retries, S) of
