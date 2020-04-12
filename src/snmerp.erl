@@ -197,7 +197,7 @@ get(S = #snmerp{}, Var, Opts) ->
 %% @doc Get a single object
 -spec get_oid(client(), var()) -> {ok, value()} | {error, term()}.
 get_oid(S = #snmerp{}, Oid) ->
-	get_oid(S, Var, []).
+	get_oid(S, Oid, []).
 
 %% @doc Get a single object
 -spec get_oid(client(), var(), req_options()) -> {ok, value()} | {error, term()}.
@@ -490,7 +490,7 @@ request_pdu({PduType, Pdu}, Timeout, Retries, S = #snmerp{sock = Sock, ip = Ip, 
 request_pdu({PduType, Pdu}, Timeout, Retries, S = #snmerp{sock = Sock, ip = Ip, snmp_ver = 3}) ->
 	%% get auth and privacy details
 	EngineBoots = S#snmerp.engine_boots,
-	{MegaSecs, Secs, _} = erlang:now(),
+	{MegaSecs, Secs, _} = erlang:timestamp(),
 	TimeDiff = ((MegaSecs * 1000000) + Secs) - S#snmerp.engine_time_at,
 	EngineTime = S#snmerp.engine_time + TimeDiff,
 	<<_:1, RequestId:31/big>> = crypto:strong_rand_bytes(4),
@@ -705,7 +705,7 @@ discover(S = #snmerp{sock = Sock, ip = Ip, snmp_ver = 3}, Timeout) ->
 							EngineID = Spdu#'ScopedPDU'.contextEngineID,
 							AuthKey = create_key(S, S#snmerp.auth_protocol, EngineID, S#snmerp.auth_password),
 							PrivKey = create_key(S, S#snmerp.auth_protocol, EngineID, S#snmerp.priv_password),
-							{MegaSecs, Secs, _} = erlang:now(),
+							{MegaSecs, Secs, _} = erlang:timestamp(),
 							{ok, S#snmerp{ engine_id = Spdu#'ScopedPDU'.contextEngineID,
 								       engine_boots = RspUsm#'USM'.engineBoots,
 								       engine_time = RspUsm#'USM'.engineTime,
