@@ -228,7 +228,8 @@ set_oid(S = #snmerp{}, Oid) ->
 set_oid(S = #snmerp{}, Oid, Opts) ->
 	Timeout = proplists:get_value(timeout, Opts, S#snmerp.timeout),
 	Retries = proplists:get_value(retries, Opts, S#snmerp.retries),
-	ReqVbs = [#'VarBind'{name = Oid, v = {unSpecified,'NULL'}}],
+	V = value_to_v(Value, Oid, S),
+	ReqVbs = [#'VarBind'{name = Oid, v = V}],
 	ReqPdu = {'set-request', #'PDU'{'variable-bindings' = ReqVbs}},
 	case request_pdu(ReqPdu, Timeout, Retries, S) of
 		{ok, #'PDU'{}} -> ok;
