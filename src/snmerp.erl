@@ -90,7 +90,7 @@
 -export([discover/2]).
 
 -export([get_oid/2, get_oid/3]).
--export([set_oid/2, set_oid/3]).
+-export([set_oid/3, set_oid/4]).
 
 -define(i32(Int), (Int bsr 24) band 255, (Int bsr 16) band 255, (Int bsr 8) band 255, Int band 255).
 -define(i64(Int), (Int bsr 56) band 255, (Int bsr 48) band 255, (Int bsr 40) band 255, (Int bsr 32) band 255, (Int bsr 24) band 255, (Int bsr 16) band 255, (Int bsr 8) band 255, Int band 255).
@@ -219,13 +219,13 @@ get_oid(S = #snmerp{}, Oid, Opts) ->
 	end.
 
 %% @doc Set the value of a single object.
--spec set_oid(client(), oid()) -> ok | {error, term()}.
-set_oid(S = #snmerp{}, Oid) ->
-	set(S, Oid, []).
+-spec set_oid(client(), oid(), value()) -> ok | {error, term()}.
+set_oid(S = #snmerp{}, Value, Oid) ->
+	set(S, Oid, Value, []).
 
 %% @doc Set the value of a single object.
--spec set_oid(client(), oid(), req_options()) -> ok | {error, term()}.
-set_oid(S = #snmerp{}, Oid, Opts) ->
+-spec set_oid(client(), oid(), value(), req_options()) -> ok | {error, term()}.
+set_oid(S = #snmerp{}, Oid, Value, Opts) ->
 	Timeout = proplists:get_value(timeout, Opts, S#snmerp.timeout),
 	Retries = proplists:get_value(retries, Opts, S#snmerp.retries),
 	V = value_to_v(Value, Oid, S),
