@@ -196,12 +196,12 @@ get(S = #snmerp{}, Var, Opts) ->
 	end.
 
 %% @doc Get a single object
--spec get_oid(client(), var()) -> {ok, value()} | {error, term()}.
+-spec get_oid(client(), oid()) -> {ok, value()} | {error, term()}.
 get_oid(S = #snmerp{}, Oid) ->
 	get_oid(S, Oid, []).
 
 %% @doc Get a single object
--spec get_oid(client(), var(), req_options()) -> {ok, value()} | {error, term()}.
+-spec get_oid(client(), oid(), req_options()) -> {ok, value()} | {error, term()}.
 get_oid(S = #snmerp{}, Oid, Opts) ->
 	Timeout = proplists:get_value(timeout, Opts, S#snmerp.timeout),
 	Retries = proplists:get_value(retries, Opts, S#snmerp.retries),
@@ -219,12 +219,12 @@ get_oid(S = #snmerp{}, Oid, Opts) ->
 	end.
 
 %% @doc Set the value of a single object.
--spec set_oid(client(), var(), value()) -> ok | {error, term()}.
+-spec set_oid(client(), oid()) -> ok | {error, term()}.
 set_oid(S = #snmerp{}, Oid) ->
 	set(S, Oid, []).
 
 %% @doc Set the value of a single object.
--spec set_oid(client(), var(), req_options()) -> ok | {error, term()}.
+-spec set_oid(client(), oid(), req_options()) -> ok | {error, term()}.
 set_oid(S = #snmerp{}, Oid, Opts) ->
 	Timeout = proplists:get_value(timeout, Opts, S#snmerp.timeout),
 	Retries = proplists:get_value(retries, Opts, S#snmerp.retries),
