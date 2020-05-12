@@ -224,7 +224,7 @@ set_oid(S = #snmerp{}, Value, Oid) ->
 	set(S, Oid, Value, []).
 
 %% @doc Set the value of a single object.
--spec set_oid(client(), oid(), value(), req_options()) -> {ok, record()} | {error, term()}.
+-spec set_oid(client(), oid(), value(), req_options()) -> {ok, #'PDU'{}} | {error, term()}.
 set_oid(S = #snmerp{}, Oid, Value, Opts) ->
 	Timeout = proplists:get_value(timeout, Opts, S#snmerp.timeout),
 	Retries = proplists:get_value(retries, Opts, S#snmerp.retries),
