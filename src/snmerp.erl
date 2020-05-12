@@ -232,7 +232,7 @@ set_oid(S = #snmerp{}, Oid, Value, Opts) ->
 	ReqVbs = [#'VarBind'{name = Oid, v = V}],
 	ReqPdu = {'set-request', #'PDU'{'variable-bindings' = ReqVbs}},
 	case request_pdu(ReqPdu, Timeout, Retries, S) of
-		{ok, #'PDU'{}} -> {ok, #'PDU'};
+		{ok, #'PDU'{}} -> {ok, #'PDU'{}};
 		Err -> Err
 	end.
 
