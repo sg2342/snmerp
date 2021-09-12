@@ -26,7 +26,7 @@ And it has dedicated table fetching support:
 
 ## API documentation
 
-[See here](http://arekinath.github.io/snmerp/).
+[See here](http://heyoka.github.io/snmerp/).
 
 ## License
 
