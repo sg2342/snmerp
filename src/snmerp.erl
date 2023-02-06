@@ -705,7 +705,7 @@ discover(S = #snmerp{sock = Sock, addr = {Ip, PortNumber}, snmp_ver = 3}, Timeou
     {ok, PduBin} = 'SNMPv2':encode('PDUs', {'get-request', Pdu}),
 
     ScopedPdu = #'ScopedPDU'{contextEngineID = [], contextName = [], data = PduBin},
-    Header = #'V3Message_header'{msgID = RequestId, msgMaxSize = 65000, msgFlags = [0], msgSecurityModel = 3},
+    Header = #'V3Message_header'{msgID = RequestId, msgMaxSize = 65000, msgFlags = [4], msgSecurityModel = 3},
 
     Usm = #'USM'{ engineID = [], engineBoots = 0, engineTime = 0, username = S#snmerp.username, auth = [], privacy = [] },
     {ok, UsmBin} = 'SNMPv3':encode('USM', Usm),
