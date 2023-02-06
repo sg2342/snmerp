@@ -43,25 +43,25 @@
 -record(snmerp, {
 	mibs :: snmerp_mib:mibset(),
 	sock :: term(),
-	ip :: inet:ip_address(),
+	addr :: {inet:ip_address(), inet:port_number()},
 	timeout :: integer(),
 	max_bulk :: integer(),
 	retries :: integer(),
 	disp_str :: boolean(),
 	snmp_ver :: integer(),
-	community :: string(),
-	username :: string(),
-	engine_id :: string(),
-	engine_boots :: integer(),
-	engine_time :: integer(),
-	engine_time_at :: integer(),
+	community :: string() | undefined,
+	username :: string() | undefined,
+	engine_id :: string() | undefined,
+	engine_boots :: integer() | undefined,
+	engine_time :: integer() | undefined,
+	engine_time_at :: integer() | undefined,
 	auth_protocol :: atom(),
-	auth_password :: string(),
-	auth_key :: string(),
+	auth_password :: string() | undefined,
+	auth_key :: string() | undefined,
 	priv_protocol :: atom(),
-	priv_password :: string(),
-	priv_key :: binary(),
-	context :: string()}).
+	priv_password :: string() | undefined,
+	priv_key :: binary() | undefined,
+	context :: string() | undefined}).
 
 -opaque client() :: #snmerp{}.
 -export_type([client/0]).
@@ -124,10 +124,11 @@ open(Address, Options) ->
 			MaxBulk = proplists:get_value(max_bulk, Options, 20),
 			Retries = proplists:get_value(retries, Options, 3),
 			DispStr = proplists:get_value(strings, Options, binary) =:= list,
+			PortNumber = proplists:get_value(port, Options, 161),
 			case proplists:get_value(snmp_version, Options, 2) of
 				2 ->
 					Community = proplists:get_value(community, Options, "public"),
-					{ok, #snmerp{ip = Ip, sock = Sock, snmp_ver = 2, community = Community, mibs = Mibs, timeout = Timeout, max_bulk = MaxBulk, retries = Retries, disp_str = DispStr}};
+					{ok, #snmerp{addr = {Ip, PortNumber}, sock = Sock, snmp_ver = 2, community = Community, mibs = Mibs, timeout = Timeout, max_bulk = MaxBulk, retries = Retries, disp_str = DispStr}};
 				3 ->
 					Username = proplists:get_value(username, Options),
 					AuthProtocol = proplists:get_value(auth_protocol, Options, none),
@@ -136,7 +137,7 @@ open(Address, Options) ->
 					PrivProtocol = proplists:get_value(priv_protocol, Options, none),
 					PrivPassword = proplists:get_value(priv_password, Options, []),
 					%% could convert passwords to keys here?
-					{ok, #snmerp{ip = Ip, sock = Sock, snmp_ver = 3, username = Username,
+					{ok, #snmerp{addr = {Ip, PortNumber}, sock = Sock, snmp_ver = 3, username = Username,
 						     auth_protocol = AuthProtocol, auth_password = AuthPassword,
 						     priv_protocol = PrivProtocol, priv_password = PrivPassword,
 						     context = Context, mibs = Mibs,
@@ -479,7 +480,7 @@ snmpv3_header(MsgID, S = #snmerp{}) ->
 %% @private
 -spec request_pdu({atom(), #'PDU'{} | #'BulkPDU'{}}, integer(), integer(), client()) -> {ok, #'PDU'{}} | {error, term()}.
 request_pdu(_, _, 0, _) -> {error, timeout};
-request_pdu({PduType, Pdu}, Timeout, Retries, S = #snmerp{sock = Sock, ip = Ip, snmp_ver = 2, community = Com}) ->
+request_pdu({PduType, Pdu}, Timeout, Retries, S = #snmerp{sock = Sock, addr = {Ip, PortNumber}, snmp_ver = 2, community = Com}) ->
 	<<_:1, RequestId:31/big>> = crypto:strong_rand_bytes(4),
 	Pdu2 = case Pdu of
 		#'PDU'{} ->
@@ -491,8 +492,8 @@ request_pdu({PduType, Pdu}, Timeout, Retries, S = #snmerp{sock = Sock, ip = Ip, 
 	Msg = #'Message'{version = 'version-2c', community = Com, data = PduBin},
 	{ok, MsgBin} = 'SNMPv2':encode('Message', Msg),
 	ok = inet:setopts(Sock, [{active, once}]),
-	ok = gen_udp:send(Sock, Ip, 161, MsgBin),
-	case recv_reqid_v2(Timeout, Sock, Ip, 161, RequestId) of
+	ok = gen_udp:send(Sock, Ip, PortNumber, MsgBin),
+	case recv_reqid_v2(Timeout, Sock, Ip, PortNumber, RequestId) of
 		{ok, {'response', ResponsePdu}} ->
 			#'PDU'{'error-status' = ErrSt} = ResponsePdu,
 			case ErrSt of
@@ -506,7 +507,7 @@ request_pdu({PduType, Pdu}, Timeout, Retries, S = #snmerp{sock = Sock, ip = Ip, 
 		Err ->
 			Err
 	end;
-request_pdu({PduType, Pdu}, Timeout, Retries, S = #snmerp{sock = Sock, ip = Ip, snmp_ver = 3}) ->
+request_pdu({PduType, Pdu}, Timeout, Retries, S = #snmerp{sock = Sock, addr = {Ip, PortNumber}, snmp_ver = 3}) ->
 	%% get auth and privacy details
 	EngineBoots = S#snmerp.engine_boots,
 	{MegaSecs, Secs, _} = erlang:timestamp(),
@@ -562,8 +563,8 @@ request_pdu({PduType, Pdu}, Timeout, Retries, S = #snmerp{sock = Sock, ip = Ip, 
 	end,
 
 	ok = inet:setopts(Sock, [{active, once}]),
-	ok = gen_udp:send(Sock, Ip, 161, AuthMsgBin),
-	case recv_reqid_v3(S, Timeout, Sock, Ip, 161, RequestId) of
+	ok = gen_udp:send(Sock, Ip, PortNumber, AuthMsgBin),
+	case recv_reqid_v3(S, Timeout, Sock, Ip, PortNumber, RequestId) of
 		{ok, {'response', ResponsePdu}} ->
 			#'PDU'{'error-status' = ErrSt} = ResponsePdu,
 			case ErrSt of
@@ -697,7 +698,7 @@ create_key(_S = #snmerp{}, HashAlg, EngineID, Password) ->
 
 %% @doc Engine ID and time/boot counter discovery for v3 clients
 -spec discover(client(), integer()) -> {ok, client()} | {error, term()}.
-discover(S = #snmerp{sock = Sock, ip = Ip, snmp_ver = 3}, Timeout) ->
+discover(S = #snmerp{sock = Sock, addr = {Ip, PortNumber}, snmp_ver = 3}, Timeout) ->
 	<<_:1, RequestId:31/big>> = crypto:strong_rand_bytes(4),
 
 	Pdu = #'PDU'{'request-id' = RequestId, 'error-status' = noError, 'error-index' = 0, 'variable-bindings' = []},
@@ -713,9 +714,9 @@ discover(S = #snmerp{sock = Sock, ip = Ip, snmp_ver = 3}, Timeout) ->
 	{ok, MsgBin} = 'SNMPv3':encode('V3Message', Msg),
 
 	ok = inet:setopts(Sock, [{active, once}]),
-	ok = gen_udp:send(Sock, Ip, 161, MsgBin),
+	ok = gen_udp:send(Sock, Ip, PortNumber, MsgBin),
 	receive
-		{udp, Sock, Ip, 161, ReplyBin} ->
+		{udp, Sock, Ip, PortNumber, ReplyBin} ->
 			case 'SNMPv3':decode('V3Message', ReplyBin) of
 				{ok, #'V3Message'{version = 'version-3', header = _Header, msgSecurityParameters = RspUsmBin, data = {scopedPDU, Spdu}}} ->
 					{ok, RspUsm} = 'SNMPv3':decode('USM', RspUsmBin),
