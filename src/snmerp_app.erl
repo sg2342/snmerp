@@ -34,6 +34,6 @@
 -export([start/2, stop/1]).
 
 start(_StartType, _Args) ->
-	snmerp_sup:start_link().
+    snmerp_sup:start_link().
 
 stop(_State) -> ok.
