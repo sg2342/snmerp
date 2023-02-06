@@ -542,7 +542,7 @@ request_pdu({PduType, Pdu}, Timeout, Retries, S = #snmerp{sock = Sock, ip = Ip, 
 	PrivScopedPdu = case Cipher of
 		aes_cfb128 ->
 			{ok, ScopedPduBin} = 'SNMPv3':encode('ScopedPDU', ScopedPdu),
-			{encrypted, binary_to_list(crypto:block_encrypt(aes_cfb128, PrivKey, IV, ScopedPduBin))};
+			{encrypted, binary_to_list(crypto:crypto_one_time(aes_cfb128, PrivKey, IV, ScopedPduBin, [{encrypt, true}]))};
 		none ->	{scopedPDU, ScopedPdu}
 	end,
 
@@ -554,7 +554,7 @@ request_pdu({PduType, Pdu}, Timeout, Retries, S = #snmerp{sock = Sock, ip = Ip, 
 	{ok, AuthMsgBin} = case HMACAlgo of
 		none ->	{ok, MsgBin};
 		_ ->
-			HMAC = crypto:hmac(HMACAlgo, HMACKey, MsgBin, HMACLen),
+			HMAC = crypto:macN(hmac, HMACAlgo, HMACKey, MsgBin, HMACLen),
 			AuthUsm = Usm#'USM' { auth = binary_to_list(HMAC) },
 			{ok, AuthUsmBin} = 'SNMPv3':encode('USM', AuthUsm),
 			AuthMsg = Msg#'V3Message' { msgSecurityParameters = AuthUsmBin },
@@ -640,7 +640,7 @@ recv_reqid_v3(S, Timeout, Sock, Ip, Port, ReqId) ->
 							{ok, AuthUsmBin} = 'SNMPv3':encode('USM', AuthUsm),
 							AuthMsg = Msg#'V3Message' { msgSecurityParameters = AuthUsmBin },
 							{ok, AuthMsgBin} = 'SNMPv3':encode('V3Message', AuthMsg),
-							HMAC = crypto:hmac(HMACAlgo, HMACKey, AuthMsgBin, HMACLen),
+							HMAC = crypto:macN(hmac, HMACAlgo, HMACKey, AuthMsgBin, HMACLen),
 							case Usm#'USM'.auth of
 								HMAC -> ok;
 								_ -> io:format("HMAC mismatch: ~p vs ~p~n", [HMAC, Usm#'USM'.auth]), {error, bad_hmac}
@@ -660,7 +660,7 @@ recv_reqid_v3(S, Timeout, Sock, Ip, Port, ReqId) ->
 								{_, false} ->
 									{Data#'ScopedPDU'.data, missing_priv};
 								_ ->
-									Decrypt = crypto:block_decrypt(Cipher, PrivKey, IV, Data),
+									Decrypt = crypto:crypto_one_time(Cipher, PrivKey, IV, Data, [{encrypt, false}]),
 									{ok, ScopedPDU} = 'SNMPv3':decode('ScopedPDU', Decrypt),
 									{ScopedPDU#'ScopedPDU'.data, AuthResult}
 							end,
